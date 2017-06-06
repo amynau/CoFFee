@@ -118,7 +118,7 @@ p = inputParser;
 % ALLfilename to parse as only required argument. Test for file existence and
 % extension.
 argName = 'ALLfilename';
-argCheck = @(x) exist(x,'file') && any(strcmp(CFF_fileextension(x),{'.all','.ALL','.wcd','.WCD'}));
+argCheck = @(x) exist(x,'file') && any(strcmp(CFF_file_extension(x),{'.all','.ALL','.wcd','.WCD'}));
 addRequired(p,argName,argCheck);
 
 % MATfilename output as only optional argument.
