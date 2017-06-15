@@ -82,7 +82,7 @@ parse(p,ALLfilename)
 ALLfilename = p.Results.ALLfilename;
 
 %% supported systems:
-emNumberList = [300; 2045; 3000; 3002; 3020]; %2045 is 2040c
+emNumberList = [300; 2045;2040; 3000; 3002; 3020]; %2045 is 2040c
 
 %% Checking byte ordering
 % - Luciano's all files are in 'b'

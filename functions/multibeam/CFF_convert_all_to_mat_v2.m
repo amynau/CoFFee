@@ -128,8 +128,8 @@ end
 info = CFF_all_file_info(ALLfilename);
 
 info.parsed(:) = 1; % to save all the datagrams
-
+profile on;
 ALLfile = CFF_read_all_from_fileinfo(ALLfilename, info);
-
+profile off;profile viewer;
 ALLfileinfo = CFF_save_mat_from_all(ALLfile,MATfilename);
 
