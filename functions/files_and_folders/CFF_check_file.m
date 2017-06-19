@@ -1,8 +1,9 @@
 %% CFF_check_file.m
 %
-% check if file(s) exist and returns the absolute path of the input file(s)
-% (with correct filesep), or prompt for valid file(s) as close as
-% possible to the (invalid) input file(s)
+% check if file(s) exist. If it/they does/do, return the absolute path of
+% the input file(s), with correct filesep. If it/they don't, either throw
+% error, or prompt for valid file(s) as close as possible to the (invalid)
+% input file(s).
 %
 %% Help
 %
@@ -12,7 +13,13 @@
 %
 % *INPUT VARIABLES*
 %
-% * |in_file|: TODO: write description and info on variable
+% * |in_file|: required. char string or cell array of char strings. The
+% file(s) to test for existence. 
+% * |noprompt_flag|: optional. char string. If 'noprompt' is called as
+% second input, this function will return an error is the file(s) don't
+% exist. If |noprompt_flag| is not called (or is anything else but
+% 'noprompt', then the function will throw an UI interface to prompt for
+% file(s).
 %
 % *OUTPUT VARIABLES*
 %
@@ -24,6 +31,7 @@
 %
 % *NEW FEATURES*
 %
+% * 2017-06-19: added noprompt flag. Not tested. (Alex Schimel)
 % * 2017-06-06: first version (Alex Schimel)
 %
 % *EXAMPLE*
@@ -35,7 +43,7 @@
 % Alexandre Schimel, NIWA.
 
 %% Function
-function [out_file] = CFF_check_file(in_file)
+function [out_file] = CFF_check_file(in_file, noprompt_flag)
 
 % first off, replace wrong fileseps if any
 file = CFF_correct_filesep(in_file);
@@ -54,16 +62,25 @@ if ischar(in_file)
     else
         % if it doesn't...
         
-        % get closest existing folder
-        folder = CFF_closest_existing_folder(file);
-        
-        % prompt for one file in the closest existing folder
-        txt = ['The file ''' file ''' does not exist. Please select a valid file'];
-        FilterSpec = [folder filesep '*.*'];
-        [FileName,PathName] = uigetfile(FilterSpec,txt,'MultiSelect','off');
-        
-        % output file with path
-        out_file = fullfile(PathName,FileName);
+        if nargin>1 && strcmp(noprompt_flag,'noprompt')
+            
+            txt = ['The file ''' file ''' does not exist.'];
+            error(txt);
+            
+        else
+            
+            % get closest existing folder
+            folder = CFF_closest_existing_folder(file);
+            
+            % prompt for one file in the closest existing folder
+            txt = ['The file ''' file ''' does not exist. Please select a valid file'];
+            FilterSpec = [folder filesep '*.*'];
+            [FileName,PathName] = uigetfile(FilterSpec,txt,'MultiSelect','off');
+            
+            % output file with path
+            out_file = fullfile(PathName,FileName);
+            
+        end
         
     end
     
@@ -79,24 +96,36 @@ elseif iscell(file)
         out_file = cellfun(@CFF_full_path,file,'UniformOutput',0);
         
     else
-        % if at least one does not exist, prompt for all files to be selected
-        % using input number as guess
+        % if at least one does not exist...
         
-        % get closest existing folder
-        folder = CFF_closest_existing_folder(file{1});
-
-        % prompt for files in the closest existing folder
-        n_files = length(file);
-        txt = sprintf('%i out of %i files do not exist. Please select valid files.', X, n_files);
-        FilterSpec = [folder filesep '*.*'];
-        [FileName,PathName] = uigetfile(FilterSpec,txt,'MultiSelect','on');
-        
-        % return with full path
-        out_file = cell(size(file));
-        for ii = 1:length(out_file)
-            out_file{ii} = fullfile(PathName,FileName{ii});
+        if nargin>1 && strcmp(noprompt_flag,'noprompt')
+            
+            % throw an error
+            n_files = length(file);
+            txt = sprintf('%i out of %i files do not exist.', X, n_files);
+            error(txt);
+            
+        else
+            
+            % prompt for all files to be selected
+            
+            % get closest existing folder
+            folder = CFF_closest_existing_folder(file{1});
+            
+            % prompt for files in the closest existing folder
+            n_files = length(file);
+            txt = sprintf('%i out of %i files do not exist. Please select valid files.', X, n_files);
+            FilterSpec = [folder filesep '*.*'];
+            [FileName,PathName] = uigetfile(FilterSpec,txt,'MultiSelect','on');
+            
+            % return with full path
+            out_file = cell(size(file));
+            for ii = 1:length(out_file)
+                out_file{ii} = fullfile(PathName,FileName{ii});
+            end
+            
         end
-
+        
     end
     
 end

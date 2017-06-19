@@ -1,8 +1,9 @@
 %% CFF_check_folder.m
 %
-% check if folder exists and returns the absolute path of the input folder
-% (with correct filesep), or prompt for a valid input folder as close as
-% possible to the (invalid) input folder
+% check if folder exists. If it does, return the absolute path of the input
+% folder, with correct filesep. If it doesn't, either throw an error, or
+% prompt for a valid input folder as close as possible to the (invalid)
+% input folder.
 %
 %% Help
 %
@@ -12,7 +13,12 @@
 %
 % *INPUT VARIABLES*
 %
-% * |input_variable_1|: TODO: write description and info on variable
+% * |in_folder|: required. char string. the folder to test for existence
+% * |noprompt_flag|: optional. char string. If 'noprompt' is called as
+% second input, this function will return an error is the folder doesn't
+% exist. If |noprompt_flag| is not called (or is anything else but
+% 'noprompt', then the function will throw an UI interface to prompt for a
+% folder.
 %
 % *OUTPUT VARIABLES*
 %
@@ -24,6 +30,7 @@
 %
 % *NEW FEATURES*
 %
+% * 2017-06-19: added noprompt flag. Not tested. (Alex Schimel)
 % * 2017-06-06: first version (Alex Schimel)
 %
 % *EXAMPLE*
@@ -35,7 +42,7 @@
 % Alexandre Schimel, NIWA.
 
 %% Function
-function [out_folder] = CFF_check_folder(in_folder)
+function [out_folder] = CFF_check_folder(in_folder,noprompt_flag)
 
 % first off, replace wrong fileseps if any
 folder = CFF_correct_filesep(in_folder);
@@ -49,13 +56,22 @@ if exist(folder,'dir')
 else
     % folder doesn't exist
     
-    % check input path to find the closest existing folder in the input
-    % path (or pwd if there none valid)
-    folder = CFF_closest_existing_folder(folder);
-    
-    % prompt for an existing folder
-    txt = ['The folder ''' in_folder ''' does not exist. Please select a valid folder.'];
-    out_folder = uigetdir(folder,txt);
+    if nargin>1 && strcmp(noprompt_flag,'noprompt')
+        
+        txt = ['The folder ''' in_folder ''' does not exist.'];
+        error(txt);
+        
+    else
+        
+        % check input path to find the closest existing folder in the input
+        % path (or pwd if there none valid)
+        folder = CFF_closest_existing_folder(folder);
+        
+        % prompt for an existing folder
+        txt = ['The folder ''' in_folder ''' does not exist. Please select a valid folder.'];
+        out_folder = uigetdir(folder,txt);
+        
+    end
     
 end
 
