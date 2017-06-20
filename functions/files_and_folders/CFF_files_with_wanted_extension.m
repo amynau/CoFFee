@@ -1,8 +1,10 @@
 %% CFF_files_with_wanted_extension.m
 %
-% return a cell array of char strings listing the files in folder with the
-% wanted extension (case insensitive). if extension is '.*' or not in
-% input, function returns all files.
+% files = CFF_files_with_wanted_extension(folder, extension) returns a cell
+% array of char strings listing the files in "folder" with the wanted
+% "extension" (case insensitive). "extension" is optional: if not in 
+% input, the function returns all files in "folder". Using extension '.*'
+% produces the same result.
 %
 %% Help
 %
@@ -35,14 +37,17 @@
 % Alexandre Schimel, NIWA.
 
 %% Function
-function files = CFF_files_with_wanted_extension(folder, extension)
+function [files,fpath] = CFF_files_with_wanted_extension(folder, extension)
 
 if nargin == 1
     extension = '.*';
 end
 
+% improve folder
+fpath = CFF_full_path(folder);
+
 % get content of folder
-listing = dir(folder);
+listing = dir(fpath);
 
 % grab filenames
 files = {listing.name}';
@@ -64,5 +69,7 @@ for ii=length(files):-1:1
         files(ii) = [];
     end
 end
+
+
 
 

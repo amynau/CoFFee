@@ -1,8 +1,11 @@
 %% CFF_check_file.m
 %
-% check if file(s) exist. If it/they does/do, return the absolute path of
-% the input file(s), with correct filesep. If it/they don't, either throw
-% error, or prompt for valid file(s) as close as possible to the (invalid)
+% [out_file] = CFF_check_file(in_file, noprompt_flag) checks if
+% "in_file" is an existing file or set of files. If it/they does/do, return the absolute path of
+% the input file(s), with correct filesep. If it isn't,
+% "noprompt_flag" controls the resulting behaviour. If "noprompt_flag" is
+% the string of characters 'noprompt', the function returns an error.
+% Anything else and the function will prompt for valid file(s) as close as possible to the (invalid)
 % input file(s).
 %
 %% Help

@@ -1,9 +1,12 @@
 %% CFF_check_folder.m
 %
-% check if folder exists. If it does, return the absolute path of the input
-% folder, with correct filesep. If it doesn't, either throw an error, or
-% prompt for a valid input folder as close as possible to the (invalid)
-% input folder.
+% [out_folder] = CFF_check_folder(in_folder,noprompt_flag) checks if
+% "in_folder" is an existing folder. If it is, it returns the absolute
+% path of the input folder, with correct filesep. If it isn't,
+% "noprompt_flag" controls the resulting behaviour. If "noprompt_flag" is
+% the string of characters 'noprompt', the function returns an error.
+% Anything else and the function will prompt for a valid input folder as
+% close as possible to the (invalid) input folder.
 %
 %% Help
 %

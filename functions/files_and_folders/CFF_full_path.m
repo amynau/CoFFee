@@ -1,7 +1,7 @@
 %% CFF_full_path.m
 %
-% Returns the absolute path for one input folder or file, in
-% case the input path is relative
+% out = CFF_full_path(in) returns the absolute path for input folder or
+% file "in", in case the input path is only relative.
 %
 %% Help
 %
@@ -70,8 +70,8 @@ elseif exist(temp,'file')
     
     % test if file has a path (absolute or relative, doesn't matter)
     if isempty(pathstr)
-        % if it doesn't, it means file is in curent directory so 'which'
-        % function should work
+        % if it doesn't, it means file is in curent directory or on the
+        % search path so 'which' directly gives result
         
         out = which(temp);
         

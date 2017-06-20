@@ -1,7 +1,9 @@
-%% this_function_name.m
+%% CFF_default_mat_filename.m
 %
-% returns a default .mat file name for a file to be converted, by replacing
-% extension period with underscore, and adding .mat extension.
+% mat_files = CFF_default_mat_filename(files) returns default .mat file
+% name(s) for one or several input filenames "files", usually prior to
+% conversion. That default convention is to replace the period in the
+% extension with underscore, and adding .mat extension.
 % For example: 'C:\DATA\myfile.all' -> 'C:\DATA\myfile_all.mat'
 %
 %% Help
@@ -44,6 +46,7 @@ if ischar(files)
     
 elseif iscell(files)
     
+    mat_files = cell(size(files));
     for ii=1:length(files)
         [p,n,e] = fileparts(files{ii});
         mat_files{ii} = [p filesep n  '_' e(2:end) '.mat'];
