@@ -1,188 +1,312 @@
-function [IN2,OUT2] = CFF_filelist_for_conversion(IN,varargin)
-% function [IN2,OUT2] = CFF_filelist_for_conversion(IN,varargin)
+%% CFF_filelist_for_conversion.m
 %
-% DESCRIPTION
+% CFF_filelist_for_conversion creates the list of input files and output
+% files prior to conversion to .mat format.
 %
-% function to sort out filenames, prior to .all to .mat conversion.
+%% Help
 %
-% USE
+% *USE*
 %
-% With NO input -> uigetfiles to prompt for files to convert. Converted
-% files to go in same folder using default naming convention.
+% [in,out] = CFF_filelist_for_conversion() 
+% -> Will prompt you for files to convert, store them with full path in
+% "in" and prepare the file names for after conversion in "out".
 %
-% With ONE input.
-% * Test if input is folder.
-%   * Yes? List all files in folder
-%   * No? Test if input is file(s).
-%       * Yes? Just take these files
-%       * No? Prompt for files
-% * With list of files obtained, converted files to go in same folder using
-% default naming convention. 
+% The general form for using the function is as follow:
 %
-% With TWO inputs.
-% * Test if folder
-%   * Yes? This is output folder
-%   * No? Test if
-%       * 
-% * Test if second input is an extension
-%   * Yes? record extension
-%   * No? record '.*' as extension
-% * Repeat case above, using extension
-% 
+% [in,out] = CFF_filelist_for_conversion(var1,var2,ext)
 %
+% -> var1 is the input information. It can be a string file name, a cell
+% array of string file names, or a folder where to find the input file
+% names. If left empty [], it will prompt you for file names.
 %
-% With THREE inputs.
-% 
+% -> var2 is the output information. It can be a single string file name
+% (ending in ".mat") if var1 was a single string filename. Or it can
+% be a cell array of string if var1 was a cell array of string filenames.
+% It can be an existing or non-existing folder name for where to store the
+% files (with default mat filenames). Finally, if empty [] or not given in
+% input, the current directory will be used as default output folder.
 %
-% INPUT VARIABLES
+% -> ext is the extension of the files to be converted, mostly used in
+% conjunction with using a folder name for var1, example:
+% [in,out] = CFF_filelist_for_conversion(input_folder,[],'.all')
 %
-% In all following cases, a specified folder MUST finish with a filesep.
+% Note that, in all cases:
+% * if no output folder is provided, the default folder for
+% output files is the current folder.
+% * if no output filename(s) is/are provided, the default naming convention
+% is used for output files.
 %
-% 1. only IN as a string filename.
-% -> turn IN as a cell of one string. Write OUT with same foldername and same filename as IN
-% ex: [in1,out1] = CFF_filelist_for_conversion('D:\Alex\test\test1.all')
-% -> in1 = {'D:\Alex\test\test1.all'}
-% -> out1 = {'D:\Alex\test\test1.mat'}
+% With ZERO input -> uigetfiles to prompt for files to convert.
 %
-% 2. IN as a string filename & varargin{1} is OUT as a string filename
-% -> turn IN and OUT as cells of one string
-% ex: [in2,out2] = CFF_filelist_for_conversion('D:\Alex\test\test1.all','D:\Alex\test\tagada\test.mat')
-% -> in2 = {'D:\Alex\test\test1.all'}
-% -> out2 = {'D:\Alex\test\tagada\test.mat'}
+% With varargin{1}
+% * Test if input is existing folder, if so list all files in folder.
+% * Test if input is/are file(s) that exists, if so just take those files.
+% * Otherwise, error.
 %
-% 3. only IN as a cell of string filenames
-% -> Keep IN as is. Write OUT with same foldername and same filename as IN
-% ex: [in3,out3] = CFF_filelist_for_conversion({'D:\Alex\test\test1.all','D:\Alex\test\test2.all'})
-% -> in3 = {'D:\Alex\test\test1.all','D:\Alex\test\test2.all'}
-% -> out3 = {'D:\Alex\test\test1.mat','D:\Alex\test\test2.mat'}
+% With varargin{2}
+% * Test if it is an extension. If so, conserve only files with said
+% extension out of the list of files.
+% * Test if is existing folder. If so, this is output folder.
+% * Test if looks like a folder (ends with filesep). If so this is output
+% folder to create.
+% * Test if looks like a filename that matches number of inputs. If so this
+% is output filenames (with folder).
+% * Otherwise, error.
 %
-% 4. IN as cell of string filenames & varargin{1} is OUT as a cell of string filenames
-% -> Keep IN and OUT as is
-% ex: [in4,out4] = CFF_filelist_for_conversion({'D:\Alex\test\test1.all','D:\Alex\test\test2.all'},{'D:\Alex\test\boum\test1.mat','D:\Alex\test\boum\test2.mat'})
-% -> in4 = {'D:\Alex\test\test1.all','D:\Alex\test\test2.all'}
-% -> out4 = {'D:\Alex\test\boum\test1.mat','D:\Alex\test\boum\test2.mat'}
+% With varargin{3}
+% * should only happen in case varargin{2} was an extension.
+% * Test if is existing folder. If so, this is output folder.
+% * Test if looks like a folder (ends with filesep). If so this is output
+% * Otherwise, error.
 %
-% 5. IN as a cell of string filenames & varargin{1} is OUT as a string folder name
-% -> Keep IN as is. Write OUT with requested foldername and same filenames as IN
-% ex: [in5,out5] = CFF_filelist_for_conversion({'D:\Alex\test\test1.all','D:\Alex\test\test2.all'},'D:\Alex\test\tsoin\')
-% -> in5 = {'D:\Alex\test\test1.all','D:\Alex\test\test2.all'}
-% -> out5 = {'D:\Alex\test\tsoin\test1.mat','D:\Alex\test\tsoin\test2.mat'}
+% *INPUT VARIABLES*
 %
-% 6. IN as a string folder name & varargin{1} is the extension type (starting with a period) as string
-% -> parse for files in IN and turn to cells. Write OUT in same foldername and same filenames as IN
-% ex: [in6,out6] = CFF_filelist_for_conversion('D:\Alex\test\','.all')
+% * |input_variable_1|: TODO: write description and info on variable
 %
-% 7. IN as a string folder name & varargin{1} is the extension type as string & varargin(2) is OUT as string folder name
-% -> parse for files in IN and turn to cells. Write OUT with requested foldername and same filenames as IN
-% ex: [in7,out7] = CFF_filelist_for_conversion('D:\Alex\test\','.all','D:\Alex\test\paf\')
+% *OUTPUT VARIABLES*
 %
-% RESEARCH NOTES
+% * |output_variable_1|: TODO: write description and info on variable
 %
-% EXAMPLES
+% *RESEARCH NOTES*
+%
+% TODO: write research notes
+%
+% *NEW FEATURES*
+%
+% * 2017-06-20: complete revamping. Extension now must be in third input (Alex Schimel)
+% * 2014-02-20: first version (Alex Schimel)
+%
+% *EXAMPLE*
 %
 % % all following examples need the said input files to exist:
+% [in1,out1] = CFF_filelist_for_conversion()
+% [in1,out1] = CFF_filelist_for_conversion([])
 % [in1,out1] = CFF_filelist_for_conversion('D:\Alex\test\test1.all')
 % [in2,out2] = CFF_filelist_for_conversion('D:\Alex\test\test1.all','D:\Alex\test\tagada\test.mat')
 % [in3,out3] = CFF_filelist_for_conversion({'D:\Alex\test\test1.all','D:\Alex\test\test2.all'})
 % [in4,out4] = CFF_filelist_for_conversion({'D:\Alex\test\test1.all','D:\Alex\test\test2.all'},{'D:\Alex\test\boum\test1.mat','D:\Alex\test\boum\test2.mat'})
 % [in5,out5] = CFF_filelist_for_conversion({'D:\Alex\test\test1.all','D:\Alex\test\test2.all'},'D:\Alex\test\tsoin\')
-% [in6,out6] = CFF_filelist_for_conversion('D:\Alex\test\','.all')
-% [in7,out7] = CFF_filelist_for_conversion('D:\Alex\test\','.all','D:\Alex\test\paf\')
+% [in6,out6] = CFF_filelist_for_conversion('D:\Alex\test\')
+% [in7,out7] = CFF_filelist_for_conversion('D:\Alex\test\',[],'.all')
+% [in8,out8] = CFF_filelist_for_conversion('D:\Alex\test\','D:\Alex\test\paf\')
+% [in9,out9] = CFF_filelist_for_conversion('D:\Alex\test\','D:\Alex\test\paf\','.all',)
 %
-% NEW FEATURES
-%%%
-% Alex Schimel, Deakin University
-% Version 1 (20-02-2014)
-%%%
+% see end of function for more working examples
+%
+% *AUTHOR, AFFILIATION & COPYRIGHT*
+%
+% Alexandre Schimel, NIWA.
 
+%% Function
+function [IN_files,OUT_files] = CFF_filelist_for_conversion(varargin)
 
-% first, correct all file seps in input
-IN = CFF_correct_filesep(IN);
-for ii=1:length(varargin)
-    varargin(ii) = CFF_correct_filesep(varargin(ii));
+% The default output folder is the current folder.
+OUT_folder = [pwd filesep];
+
+% If no input -> uigetfiles to prompt for files to convert.
+if nargin==0
+    [IN_files,IN_folder] = uigetfile('*.*','Select file(s) to convert','MultiSelect','on');
+    IN_files = fullfile(IN_folder,IN_files');
 end
 
-% second, check if IN is a folder that exists OR file(s) that exist(s)
-if exist(folder,'dir')
-    INtype = 'folder';
-else
-    IN = CFF_check_file(IN);
-    INtype = 'files';
-    
-    % if IN is a single string of char, turn it to cell
-    if ischar(IN)
-        IN = {IN};
-    end
-    
-end
-
-% third
-switch INtype
-    
-    case 'files'
-        
-        % check each file in IN exists:
-        IN2 = IN;
-        for ii = 1:length(IN2)
-            IN2{ii} = CFF_check_file(IN2{ii});
-        end
-        
-        if nargin==1
-            % No other input. Write OUT with same folder name and same file
-            % name as IN
-            for ii=1:length(IN)
-                [p,n,e] = fileparts(IN{ii});
-                OUT2{ii} = [p filesep n '_' e(2:end) '.mat'];
-            end
-        elseif nargin==2 && iscellstr(varargin{1})
-            % varargin{1} is OUT as a cell of string filenames. Keep OUT as is
-            OUT2 = varargin{1};
-        elseif nargin==2 && ischar(varargin{1}) && strcmp(varargin{1}(end),filesep)
-            % varargin{1} is OUT as a string folder name (finishing with a
-            % filesep). Write OUT with requested foldername and same filenames
-            % as IN
-            for ii=1:length(IN)
-                [p,n,e] = fileparts(IN{ii});
-                OUT2{ii} = [varargin{1} n  '_' e(2:end) '.mat'];
-            end
-        else
-            error('Cannot recognize input');
-        end
-        
-    case 'folder'
-        
-        if nargin>1 && ischar(varargin{1}) && strcmp(varargin{1}(1),'.')
-            
-            % IN is a string folder name and varargin{1} is extension. Parse for
-            % files in IN and turn to cells.
-            listing = dir(IN);
-            iout=0;
-            for ii = 1:length(listing)
-                [p,n,e] = fileparts(listing(ii).name);
-                if listing(ii).isdir==0 && length(n)>0 && strcmp(e,varargin{1})
-                    iout=iout+1;
-                    IN2{iout}=[IN listing(ii).name];
-                end
-            end
-            if nargin==2
-                % Write OUT in same foldername and same filenames as IN
-                for ii=1:length(IN2)
-                    [p,n,e] = fileparts(IN2{ii});
-                    OUT2{ii} = [p filesep n  '_' e(2:end) '.mat'];
-                end
-            elseif nargin==3 && ischar(varargin{2}) && strcmp(varargin{2}(end),filesep)
-                % varargin{2} is OUT as string folder name (finishing with a
-                % filesep). Write OUT with requested foldername and same filenames
-                % as IN
-                for ii=1:length(IN2)
-                    [p,n,e] = fileparts(IN2{ii});
-                    OUT2{ii} = [varargin{2} n  '_' e(2:end) '.mat'];
-                end
+% varargin{1} is input
+if nargin>0
+    if isempty(varargin{1})
+        % if varargin{1} is empty, prompt for files
+        [IN_files,IN_folder] = uigetfile('*.*','Select file(s) to convert','MultiSelect','on');
+        IN_files = fullfile(IN_folder,IN_files');
+    elseif ischar(varargin{1}) && exist(varargin{1},'dir')
+        % if varargin{1} is an existing folder name, grab all files in this folder as input files
+        [IN_files,IN_folder] = CFF_files_with_wanted_extension(varargin{1});
+        IN_files = fullfile(IN_folder,IN_files);
+    elseif ischar(varargin{1}) && exist(varargin{1},'file')
+        % if varargin{1} is an existing file name, turn it as cell
+        IN_files = CFF_full_path(varargin{1});
+        IN_files = {IN_files};
+    elseif iscell(varargin{1})
+        % if varargin{1} is a cell array, test that all cells are valid filenames
+        for ii = 1:length(varargin{1})
+            if exist(varargin{1}{ii},'file')
+                IN_files{ii,1} = CFF_full_path(varargin{1}{ii});
             else
-                error('Cannot recognize input');
+                error('varargin{1} is not a valid input folder or (set of) file(s)');
+            end
+        end
+    else
+        error(' varargin{1} is not a valid input folder or (set of) file(s)');
+    end
+end
+
+% If we have an extension in input, reduce our list of files to only the appropriate ones
+if nargin>2
+    % varargin{3} should be our extension, check it out
+    if ~strcmp(varargin{3}(1),'.') || ~isempty(regexp(varargin{3},'[/\\]'))
+        error('varargin{3} should be an extension');
+    end
+    % conserve only files with said extension out of the list of files.
+    for ii=length(IN_files):-1:1
+        [~,~,e] = fileparts(IN_files{ii});
+        if ~strcmpi(e,varargin{3})
+            IN_files(ii) = [];
+        end
+    end
+end
+
+% varargin{2} is our output
+if nargin>1
+    if isempty(varargin{2})
+        % if varargin{2} is empty, keep default pwd as output folder
+    elseif ischar(varargin{2}) && exist(varargin{2},'dir')
+        % if varargin{2} is an existing folder, this is our output folder
+        OUT_folder = CFF_full_path(varargin{2});
+    elseif ischar(varargin{2}) && ( strcmp(varargin{2}(end),'/') ||  strcmp(varargin{2}(end),'\') )
+        % if varargin{2} is a string of characters ending with a filesep,
+        % this is the output folder that will need to be created later.
+        varargin{2} = CFF_correct_filesep(varargin{2});
+        mkdir(varargin{2});
+        OUT_folder = CFF_full_path(varargin{2});
+        rmdir(OUT_folder);
+    elseif ischar(varargin{2}) && strcmp(varargin{2}(end-3:end),'.mat') && length(IN_files)==1
+        % if varargin{2} is a string of char ending in '.mat' while we have one input file, this is the output file to create.
+        
+        % first correct filsep if needed
+        varargin{2} = CFF_correct_filesep(varargin{2});
+        % then, get the path
+        [p,n,e] = fileparts(varargin{2});
+        if isempty(p)
+            % if p is empty, path is current path, aka default OUT_folder
+        elseif ischar(p) && exist(p,'dir')
+            % if p is an existing folder, this is our output folder
+            OUT_folder = CFF_full_path(p);
+        else
+            % if p doesn't exist, we need to create it, get its full path,
+            % and delete it,
+            mkdir(p);
+            OUT_folder = CFF_full_path(p);
+            rmdir(p);
+        end
+        % finally, complete OUT_files with its path
+        OUT_files = {fullfile(OUT_folder,[n e])};
+        
+    elseif iscell(varargin{2}) && numel(varargin{2})==numel(IN_files)
+        % if varargin{2} is a cell array and varargin{2} matches number of inputs, test if all those potential files have a '.mat' extention.
+        for ii = 1:length(varargin{2})
+            % first correct filsep if needed
+            varargin{2}{ii} = CFF_correct_filesep(varargin{2}{ii});
+            
+            % then, get the path
+            [p,n,e] = fileparts(varargin{2}{ii});
+            
+            % throw error if extension is not .mat
+            if ~strcmp(e,'.mat')
+                error('varargin{2} is not a valid output folder, extension or (set of) output file(s)')
             end
             
+            % still here? Alright, get the full path for this file
+            if isempty(p)
+                % if p is empty, path is current path, aka default OUT_folder
+            elseif ischar(p) && exist(p,'dir')
+                % if p is an existing folder, this is our output folder
+                OUT_folder = CFF_full_path(p);
+            else
+                % if p doesn't exist, we need to create it, get its full path,
+                % and delete it,
+                mkdir(p);
+                OUT_folder = CFF_full_path(p);
+                rmdir(p);
+            end
+            % finally, complete OUT_files with its path
+            OUT_files(ii,1) = {fullfile(OUT_folder,[n e])};
         end
-        
-        
+    else
+        error('varargin{2} is not a valid output folder, extension or (set of) output file(s)')
+    end
 end
+
+% last, if the last step didn't create out_files, do so now. Using default
+% convention.
+if ~exist('OUT_files','var')
+    for ii = 1:length(IN_files)
+        [~,n,e] = fileparts(IN_files{ii});
+        OUT_files{ii,1} = fullfile(OUT_folder,[n e]);
+    end
+    OUT_files = CFF_default_mat_filename(OUT_files);
+end
+
+
+
+%% TESTING
+
+% % no input
+% [IN_files,OUT_files] = CFF_filelist_for_conversion
+%
+% % empty input
+% [IN_files,OUT_files] = CFF_filelist_for_conversion([])
+%
+% % input folder in folder
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('ALL')
+%
+% % input relative folder
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('.\DATA\ALL')
+%
+% % input absolute folder
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('C:\Users\schimela\OneDrive - NIWA\MATLAB LEGACY CODE\DEVPT\DATA\ALL')
+%
+% % input folder on path
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('\EM2040C\')
+%
+% % input folder with wrong filesep
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('./DATA\ALL\')
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('C:\Users\schimela\OneDrive - NIWA\MATLAB LEGACY CODE\DEVPT/DATA\ALL\')
+%
+% % input file in folder
+% % NOTE IT WILL FIND THE FILE IF IT'S ON THE SEARCH PATH
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('0003_20140213_052947_Yolla.all')
+%
+% % input file in relative folder
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('./DATA/ALL\0003_20140213_052947_Yolla.all')
+%
+% % input file in absolute folder
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('C:\Users\schimela\OneDrive - NIWA\MATLAB LEGACY CODE\DEVPT\DATA\ALL\0003_20140213_052947_Yolla.all')
+%
+% % input cell array of files
+% [IN_files,OUT_files] = CFF_filelist_for_conversion({'.\DATA\ALL\0003_20140213_052947_Yolla.all','.\DATA\ALL\0001_20140213_052736_Yolla.all'})
+%
+% % input file with extension
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('./DATA/ALL\0003_20140213_052947_Yolla.all',[],'.all')
+%
+% % input set of files with extension
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('.\DATA\ALL\0003_20140213_052947_Yolla.all',[],'.wcd')
+%
+% % input folder with extension
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('./DATA/ALL/',[],'.all')
+%
+% % input set of files with extension
+% [IN_files,OUT_files] = CFF_filelist_for_conversion({'.\DATA\ALL\0003_20140213_052947_Yolla.all','fig1.png'},[],'.all')
+%
+% % with existing output folder
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('./DATA/ALL/','./DATA/MAT')
+%
+% % with non-existent folder
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('./DATA/ALL/','./DATA/pouf2/','.all')
+%
+% % with input file and output filename
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('./DATA/ALL\0003_20140213_052947_Yolla.all','test.mat')
+%
+% % with input file and output filename in existing directory
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('./DATA/ALL\0003_20140213_052947_Yolla.all','./tempMAT/test.mat')
+%
+% % with input file and output filename in existing directory
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('./DATA/ALL\0003_20140213_052947_Yolla.all','C:\Users\schimela\OneDrive - NIWA\MATLAB LEGACY CODE\DEVPT/tempMAT/test.mat')
+%
+% % with input file and output filename in non-existing directory
+% [IN_files,OUT_files] = CFF_filelist_for_conversion('./DATA/ALL\0003_20140213_052947_Yolla.all','./newdir/test.mat')
+%
+% % with input files and output files matching in numbers
+% [IN_files,OUT_files] = CFF_filelist_for_conversion({'./DATA/ALL\0003_20140213_052947_Yolla.all','./DATA/ALL\0001_20140213_052736_Yolla.all'},{'test1.mat','test2.mat'})
+%
+% % with input files and output files matching in numbers, in existing folder
+% [IN_files,OUT_files] = CFF_filelist_for_conversion({'./DATA/ALL\0003_20140213_052947_Yolla.all','./DATA/ALL\0001_20140213_052736_Yolla.all'},{'./tempMAT/test1.mat','./DATA/bing98/test2.mat'})
+%
+% % with input files and output files matching in numbers, in existing folder
+% [IN_files,OUT_files] = CFF_filelist_for_conversion({'./DATA/ALL\0003_20140213_052947_Yolla.all','fig1.png'},{'./tempMAT/test1.mat','./DATA/bing98/test2.mat'},'.all')
