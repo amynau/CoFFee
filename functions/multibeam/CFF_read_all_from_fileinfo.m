@@ -466,6 +466,7 @@ for iDatag = datagToParse'
             % 1 byte for 1 character.
             ALLfile.EM_InstallationStart.ASCIIData{i73}                       = fscanf(fid, '%c', nbDatag-21);
             
+       
             ALLfile.EM_InstallationStart.ETX(i73)                             = fread(fid,1,'uint8');
             ALLfile.EM_InstallationStart.CheckSum(i73)                        = fread(fid,1,'uint16');
             
@@ -725,10 +726,12 @@ for iDatag = datagToParse'
             fseek(fid,temp+4,'bof'); % to next data type
             ALLfile.EM_SeabedImage.CentreSampleNumber{i83}          = fread(fid,N,'uint16',6-2);
             fseek(fid,2-6,'cof'); % we need to come back after last jump
+
             Ns = [ALLfile.EM_SeabedImage.NumberOfSamplesPerBeam{i83}];
-            for jj = 1:length(Ns)
-                ALLfile.EM_SeabedImage.SampleAmplitudes(i83).beam{jj}   = fread(fid,Ns(jj),'int8');
-            end
+            tmp=fread(fid,sum(Ns),'int16');
+           
+            ALLfile.EM_SeabedImage.SampleAmplitudes(i83).beam = mat2cell(tmp,Ns);
+            
             % "spare byte if required to get even length (always 0 if used)"
             if floor(sum(Ns)/2) == sum(Ns)/2
                 % even so far, since ETX is 1 byte, add a spare here
