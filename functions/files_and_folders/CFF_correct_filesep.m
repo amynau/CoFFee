@@ -1,10 +1,10 @@
 %% CFF_correct_filesep.m
 %
-% The path or file separator is different between windows-based system and
-% unix-based systems (including mac). This function corrects
-% file/folder/path names with the appropriate filesep. Takes single input
-% entries (string of characters) as well as multiple entries (Cell arrays
-% of characters).
+% The path or file separator symbol is different between windows-based
+% system ("\") and unix-based systems, including mac ("/").
+% out = CFF_correct_filesep(in) corrects file, folder and path names "in"
+% with the appropriate filesep. Takes single input entries (string of
+% characters) as well as multiple entries (cell arrays of characters).
 %
 %% Help
 %

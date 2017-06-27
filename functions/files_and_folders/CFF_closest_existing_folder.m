@@ -1,9 +1,9 @@
 %% CFF_closest_existing_folder.m
 %
-% Given a file or folder, this returns the closest existing folder in the
-% file path. That is, if given an input
-% "folderA/folderB/folderC/filename.txt", this function will tests, in
-% order:
+% Given a file or folder "in", folder = CFF_closest_existing_folder(in)
+% returns the closest existing folder in the file path.
+% That is, if given an input "folderA/folderB/folderC/filename.txt", this
+% function will tests, in order:
 % - if "folderA/folderB/folderC/filename.txt" is an existing folder
 % - if "folderA/folderB/folderC/" is an existing folder
 % - if "folderA/folderB/" is an existing folder
