@@ -728,7 +728,7 @@ for iDatag = datagToParse'
             fseek(fid,2-6,'cof'); % we need to come back after last jump
 
             Ns = [ALLfile.EM_SeabedImage.NumberOfSamplesPerBeam{i83}];
-            tmp=fread(fid,sum(Ns),'int16');
+            tmp=fread(fid,sum(Ns),'int8');
            
             ALLfile.EM_SeabedImage.SampleAmplitudes(i83).beam = mat2cell(tmp,Ns);
             
