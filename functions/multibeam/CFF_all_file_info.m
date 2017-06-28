@@ -82,7 +82,7 @@ parse(p,ALLfilename)
 ALLfilename = p.Results.ALLfilename;
 
 %% supported systems:
-emNumberList = [300; 2045; 3000; 3002; 3020]; %2045 is 2040c
+emNumberList = [300;302; 2045;2040; 3000; 3002; 3020]; %2045 is 2040c
 
 %% Checking byte ordering
 % - Luciano's all files are in 'b'
@@ -209,7 +209,7 @@ while 1
     if nbDatag>filesize || stxDatag~=2 || ~sum(emNumber==emNumberList)
         fseek(fid,pif+1,-1); % re-synchronizing 1 byte
         syncCounter = syncCounter+1; % update counter
-        continue
+        continue;
     end
     
     % reset the datagram counter and parsed switch

@@ -47,6 +47,9 @@ function [ALLfileinfo] = CFF_convert_all_to_mat_v2(ALLfilename, varargin)
 %   * emNumber: EM Model number (eg 2045 for EM2040c)
 %   * date: datagram date in YYYMMDD
 %   * timeSinceMidnightInMilliseconds: time since midnight in msecs 
+% - 'OutputFields'
+%   *Chosen output Fields to speed up the reading in case we do not want
+%   everything
 %
 % RESEARCH NOTES
 %
@@ -109,13 +112,17 @@ addRequired(p,argName,argCheck);
 argName = 'MATfilename';
 argDefault = [ALLfilename(1:end-3) 'mat'];
 argCheck = @isstr;
-addOptional(p,argName,argDefault,argCheck)
+addParameter(p,argName,argDefault,argCheck)
+
+argName = 'OutputFields';
+argDefault = {};
+argCheck = @iscell;
+addParameter(p,argName,argDefault,argCheck)
 
 % now parse inputs
 parse(p,ALLfilename,varargin{:})
 
 % and get results
-ALLfilename = p.Results.ALLfilename;
 MATfilename = p.Results.MATfilename;
 
 % if output folder doesn't exist, create it
@@ -129,7 +136,7 @@ info = CFF_all_file_info(ALLfilename);
 
 info.parsed(:) = 1; % to save all the datagrams
 
-ALLfile = CFF_read_all_from_fileinfo(ALLfilename, info);
+ALLfile = CFF_read_all_from_fileinfo(ALLfilename, info,'OutputFields',p.Results.OutputFields);
 
 ALLfileinfo = CFF_save_mat_from_all(ALLfile,MATfilename);
 

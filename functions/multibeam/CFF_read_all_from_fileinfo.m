@@ -1,4 +1,4 @@
-function ALLfile = CFF_read_all_from_fileinfo(ALLfilename, ALLfileinfo)
+function ALLfile = CFF_read_all_from_fileinfo(ALLfilename, ALLfileinfo,varargin)
 % function ALLfile = CFF_convert_all_to_mat(ALLfilename, ALLfileinfo)
 %
 % DESCRIPTION
@@ -13,16 +13,16 @@ function ALLfile = CFF_read_all_from_fileinfo(ALLfilename, ALLfileinfo)
 % - 'ALLfilename': string filename to parse (extension in .all or .wcd)
 %
 % - 'ALLfileinfo': structure for description of the datagrams in
-% input file. Fields are: 
+% input file. Fields are:
 %   * ALLfilename: input file name
 %   * filesize: file size in bytes
 %   * datagsizeformat: endianness of the datagram size field 'b' or 'l'
 %   * datagramsformat: endianness of the datagrams 'b' or 'l'
-%   * datagNumberInFile: 
+%   * datagNumberInFile:
 %   * datagTypeNumber: for each datagram, SIMRAD datagram type in decimal
 %   * datagTypeText: for each datagram, SIMRAD datagram type description
 %   * parsed: for each datagram, 1 if the datagram is to be parsed, 0 if
-%   not 
+%   not
 %   * counter: the counter of this type of datagram in the file (ie
 %   first datagram of that type is 1 and last datagram is the total number
 %   of datagrams of that type).
@@ -34,8 +34,11 @@ function ALLfile = CFF_read_all_from_fileinfo(ALLfilename, ALLfileinfo)
 %   indicates a sunc error
 %   * emNumber: EM Model number (eg 2045 for EM2040c)
 %   * date: datagram date in YYYMMDD
-%   * timeSinceMidnightInMilliseconds: time since midnight in msecs 
-%
+%   * timeSinceMidnightInMilliseconds: time since midnight in msecs \
+% - 'OutputFields'
+%   *Chosen output Fields to speed up the reading in case we do not want
+%   everything
+
 % OUTPUTS:
 %
 % - 'ALLfile': stucture containing structures for each datagram type, and
@@ -46,7 +49,7 @@ function ALLfile = CFF_read_all_from_fileinfo(ALLfilename, ALLfileinfo)
 %
 % - PU Status output datagram structure seems different to the datagram
 % manual description. Find the good description.#edit 21aug2013: updated to
-% Rev Q. Need to be checked though.# 
+% Rev Q. Need to be checked though.#
 %
 % - code currently lists the EM model numbers supported as a test for sync.
 % Add your model number in the list if it's not currently there. It would
@@ -93,8 +96,15 @@ argName = 'ALLfileinfo';
 argCheck = @isstruct;
 addRequired(p,argName,argCheck);
 
+%list of output required
+
+argName='OutputFields';
+argCheck = @iscell;
+argDefault={};
+addParameter(p,argName,argDefault,argCheck);
+
 % now parse inputs
-parse(p,ALLfilename,ALLfileinfo);
+parse(p,ALLfilename,ALLfileinfo,varargin{:});
 
 % and get results
 ALLfilename = p.Results.ALLfilename;
@@ -116,11 +126,12 @@ datagToParse = find(ALLfileinfo.parsed==1);
 
 %% Reading datagrams
 for iDatag = datagToParse'
-    
+    pos=ftell(fid);
     % go to begining of datagram
     pif = ALLfileinfo.datagPositionInFile(iDatag);
-    fseek(fid,pif,-1);
-
+    
+    fread(fid,pif-pos);
+    %fseek(fid,pif,-1);
     % start reading
     nbDatag                         = fread(fid,1,'uint32',datagsizeformat); % number of bytes in datagram
     stxDatag                        = fread(fid,1,'uint8');  % STX (always H02)
@@ -138,77 +149,82 @@ for iDatag = datagToParse'
     switch datagTypeNumber
         
         case 49
-            
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_PUStatus'));
+                continue;
+            end
             datagTypeText = 'PU STATUS OUTPUT (31H)';
             
             % counter for this type of datagram
             try i49=i49+1; catch, i49=1; end
             counter = i49;
-
-% SOMETHING WRONG WITH THIS DATAGRAM, NEW TEMPLATE? REWRITE USING LATEST KONGSBERG DOCUMENTATION
-%             % parsing
-%             ALLfile.EM_PUStatus.STX(i49)                                    = stxDatag;
-%             ALLfile.EM_PUStatus.TypeOfDatagram(i49)                         = datagTypeNumber;
-%             ALLfile.EM_PUStatus.EMModelNumber(i49)                          = emNumber;
-%             ALLfile.EM_PUStatus.Date(i49)                                   = date;
-%             ALLfile.EM_PUStatus.TimeSinceMidnightInMilliseconds(i49)        = timeSinceMidnightInMilliseconds;
-%             ALLfile.EM_PUStatus.StatusDatagramCounter(i49)                  = number;
-%             ALLfile.EM_PUStatus.SystemSerialNumber(i49)                     = systemSerialNumber;
-%             
-%             ALLfile.EM_PUStatus.PingRate(i49)                               = fread(fid,1,'uint16');
-%             ALLfile.EM_PUStatus.PingCounterOfLatestPing(i49)                = fread(fid,1,'uint16');
-%             ALLfile.EM_PUStatus.DistanceBetweenSwath(i49)                   = fread(fid,1,'uint8');
-%             ALLfile.EM_PUStatus.SensorInputStatusUDPPort2(i49)              = fread(fid,1,'uint32');
-%             ALLfile.EM_PUStatus.SensorInputStatusSerialPort1(i49)           = fread(fid,1,'uint32');
-%             ALLfile.EM_PUStatus.SensorInputStatusSerialPort2(i49)           = fread(fid,1,'uint32');
-%             ALLfile.EM_PUStatus.SensorInputStatusSerialPort3(i49)           = fread(fid,1,'uint32');
-%             ALLfile.EM_PUStatus.SensorInputStatusSerialPort4(i49)           = fread(fid,1,'uint32');
-%             ALLfile.EM_PUStatus.PPSStatus(i49)                              = fread(fid,1,'int8');
-%             ALLfile.EM_PUStatus.PositionStatus(i49)                         = fread(fid,1,'int8');
-%             ALLfile.EM_PUStatus.AttitudeStatus(i49)                         = fread(fid,1,'int8');
-%             ALLfile.EM_PUStatus.ClockStatus(i49)                            = fread(fid,1,'int8');
-%             ALLfile.EM_PUStatus.HeadingStatus (i49)                         = fread(fid,1,'int8');
-%             ALLfile.EM_PUStatus.PUStatus(i49)                               = fread(fid,1,'uint8');
-%             ALLfile.EM_PUStatus.LastReceivedHeading(i49)                    = fread(fid,1,'uint16');
-%             ALLfile.EM_PUStatus.LastReceivedRoll(i49)                       = fread(fid,1,'int16');
-%             ALLfile.EM_PUStatus.LastReceivedPitch(i49)                      = fread(fid,1,'int16');
-%             ALLfile.EM_PUStatus.LastReceivedHeave(i49)                      = fread(fid,1,'int16');
-%             ALLfile.EM_PUStatus.SoundSpeedAtTransducer(i49)                 = fread(fid,1,'uint16');
-%             ALLfile.EM_PUStatus.LastReceivedDepth(i49)                      = fread(fid,1,'uint32');
-%             ALLfile.EM_PUStatus.AlongShipVelocity(i49)                      = fread(fid,1,'int16');
-%             ALLfile.EM_PUStatus.AttitudeVelocitySensor(i49)                 = fread(fid,1,'uint8');
-%             ALLfile.EM_PUStatus.MammalProtectionRamp(i49)                   = fread(fid,1,'uint8');
-%             ALLfile.EM_PUStatus.BackscatterAtObliqueAngle(i49)              = fread(fid,1,'int8');
-%             ALLfile.EM_PUStatus.BackscatterAtNormalIncidence(i49)           = fread(fid,1,'int8');
-%             ALLfile.EM_PUStatus.FixedGain(i49)                              = fread(fid,1,'int8');
-%             ALLfile.EM_PUStatus.DepthToNormalIncidence(i49)                 = fread(fid,1,'uint8');
-%             ALLfile.EM_PUStatus.RangeToNormalIncidence(i49)                 = fread(fid,1,'uint16');
-%             ALLfile.EM_PUStatus.PortCoverage(i49)                           = fread(fid,1,'uint8');
-%             ALLfile.EM_PUStatus.StarboardCoverage(i49)                      = fread(fid,1,'uint8');
-%             ALLfile.EM_PUStatus.SoundSpeedAtTransducerFoundFromProfile(i49) = fread(fid,1,'uint16');
-%             ALLfile.EM_PUStatus.YawStabilization(i49)                       = fread(fid,1,'int16');
-%             ALLfile.EM_PUStatus.PortCoverageOrAcrossShipVelocity(i49)       = fread(fid,1,'int16');
-%             ALLfile.EM_PUStatus.StarboardCoverageOrDownwardVelocity(i49)    = fread(fid,1,'int16');
-%             ALLfile.EM_PUStatus.EM2040CPUtemp(i49)                          = fread(fid,1,'int8');
-%             ALLfile.EM_PUStatus.ETX(i49)                                    = fread(fid,1,'uint8');
-%             ALLfile.EM_PUStatus.CheckSum(i49)                               = fread(fid,1,'uint16');
-%             
-%             % ETX check
-%             if ALLfile.EM_PUStatus.ETX(i49)~=3
-%                 error('wrong ETX value (ALLfile.EM_PUStatus)');
-%             end
-%  
-%             % confirm parsing
-%             parsed = 1;
-
+            
+            % SOMETHING WRONG WITH THIS DATAGRAM, NEW TEMPLATE? REWRITE USING LATEST KONGSBERG DOCUMENTATION
+            %             % parsing
+            %             ALLfile.EM_PUStatus.STX(i49)                                    = stxDatag;
+            %             ALLfile.EM_PUStatus.TypeOfDatagram(i49)                         = datagTypeNumber;
+            %             ALLfile.EM_PUStatus.EMModelNumber(i49)                          = emNumber;
+            %             ALLfile.EM_PUStatus.Date(i49)                                   = date;
+            %             ALLfile.EM_PUStatus.TimeSinceMidnightInMilliseconds(i49)        = timeSinceMidnightInMilliseconds;
+            %             ALLfile.EM_PUStatus.StatusDatagramCounter(i49)                  = number;
+            %             ALLfile.EM_PUStatus.SystemSerialNumber(i49)                     = systemSerialNumber;
+            %
+            %             ALLfile.EM_PUStatus.PingRate(i49)                               = fread(fid,1,'uint16');
+            %             ALLfile.EM_PUStatus.PingCounterOfLatestPing(i49)                = fread(fid,1,'uint16');
+            %             ALLfile.EM_PUStatus.DistanceBetweenSwath(i49)                   = fread(fid,1,'uint8');
+            %             ALLfile.EM_PUStatus.SensorInputStatusUDPPort2(i49)              = fread(fid,1,'uint32');
+            %             ALLfile.EM_PUStatus.SensorInputStatusSerialPort1(i49)           = fread(fid,1,'uint32');
+            %             ALLfile.EM_PUStatus.SensorInputStatusSerialPort2(i49)           = fread(fid,1,'uint32');
+            %             ALLfile.EM_PUStatus.SensorInputStatusSerialPort3(i49)           = fread(fid,1,'uint32');
+            %             ALLfile.EM_PUStatus.SensorInputStatusSerialPort4(i49)           = fread(fid,1,'uint32');
+            %             ALLfile.EM_PUStatus.PPSStatus(i49)                              = fread(fid,1,'int8');
+            %             ALLfile.EM_PUStatus.PositionStatus(i49)                         = fread(fid,1,'int8');
+            %             ALLfile.EM_PUStatus.AttitudeStatus(i49)                         = fread(fid,1,'int8');
+            %             ALLfile.EM_PUStatus.ClockStatus(i49)                            = fread(fid,1,'int8');
+            %             ALLfile.EM_PUStatus.HeadingStatus (i49)                         = fread(fid,1,'int8');
+            %             ALLfile.EM_PUStatus.PUStatus(i49)                               = fread(fid,1,'uint8');
+            %             ALLfile.EM_PUStatus.LastReceivedHeading(i49)                    = fread(fid,1,'uint16');
+            %             ALLfile.EM_PUStatus.LastReceivedRoll(i49)                       = fread(fid,1,'int16');
+            %             ALLfile.EM_PUStatus.LastReceivedPitch(i49)                      = fread(fid,1,'int16');
+            %             ALLfile.EM_PUStatus.LastReceivedHeave(i49)                      = fread(fid,1,'int16');
+            %             ALLfile.EM_PUStatus.SoundSpeedAtTransducer(i49)                 = fread(fid,1,'uint16');
+            %             ALLfile.EM_PUStatus.LastReceivedDepth(i49)                      = fread(fid,1,'uint32');
+            %             ALLfile.EM_PUStatus.AlongShipVelocity(i49)                      = fread(fid,1,'int16');
+            %             ALLfile.EM_PUStatus.AttitudeVelocitySensor(i49)                 = fread(fid,1,'uint8');
+            %             ALLfile.EM_PUStatus.MammalProtectionRamp(i49)                   = fread(fid,1,'uint8');
+            %             ALLfile.EM_PUStatus.BackscatterAtObliqueAngle(i49)              = fread(fid,1,'int8');
+            %             ALLfile.EM_PUStatus.BackscatterAtNormalIncidence(i49)           = fread(fid,1,'int8');
+            %             ALLfile.EM_PUStatus.FixedGain(i49)                              = fread(fid,1,'int8');
+            %             ALLfile.EM_PUStatus.DepthToNormalIncidence(i49)                 = fread(fid,1,'uint8');
+            %             ALLfile.EM_PUStatus.RangeToNormalIncidence(i49)                 = fread(fid,1,'uint16');
+            %             ALLfile.EM_PUStatus.PortCoverage(i49)                           = fread(fid,1,'uint8');
+            %             ALLfile.EM_PUStatus.StarboardCoverage(i49)                      = fread(fid,1,'uint8');
+            %             ALLfile.EM_PUStatus.SoundSpeedAtTransducerFoundFromProfile(i49) = fread(fid,1,'uint16');
+            %             ALLfile.EM_PUStatus.YawStabilization(i49)                       = fread(fid,1,'int16');
+            %             ALLfile.EM_PUStatus.PortCoverageOrAcrossShipVelocity(i49)       = fread(fid,1,'int16');
+            %             ALLfile.EM_PUStatus.StarboardCoverageOrDownwardVelocity(i49)    = fread(fid,1,'int16');
+            %             ALLfile.EM_PUStatus.EM2040CPUtemp(i49)                          = fread(fid,1,'int8');
+            %             ALLfile.EM_PUStatus.ETX(i49)                                    = fread(fid,1,'uint8');
+            %             ALLfile.EM_PUStatus.CheckSum(i49)                               = fread(fid,1,'uint16');
+            %
+            %             % ETX check
+            %             if ALLfile.EM_PUStatus.ETX(i49)~=3
+            %                 error('wrong ETX value (ALLfile.EM_PUStatus)');
+            %             end
+            %
+            %             % confirm parsing
+            %             parsed = 1;
+            
         case 65
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_Attitude'));
+                continue;
+            end
             
             datagTypeText = 'ATTITUDE (41H)';
             
             % counter for this type of datagram
             try i65=i65+1; catch, i65=1; end
             counter = i65;
-
+            
             % parsing
             ALLfile.EM_Attitude.NumberOfBytesInDatagram(i65)                = nbDatag;
             ALLfile.EM_Attitude.STX(i65)                                    = stxDatag;
@@ -246,8 +262,12 @@ for iDatag = datagToParse'
             
             % confirm parsing
             parsed = 1;
-                
+            
         case 67
+            
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_Clock'));
+                continue;
+            end
             
             datagTypeText = 'CLOCK (43H)';
             
@@ -280,6 +300,9 @@ for iDatag = datagToParse'
             parsed = 1;
             
         case 68
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_Depth'));
+                continue;
+            end
             
             datagTypeText = 'DEPTH DATAGRAM (44H)';
             
@@ -339,19 +362,27 @@ for iDatag = datagToParse'
             
             % confirm parsing
             parsed = 1;
-
+            
         case 70
-
+            %
+            %             if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_Attitude'));
+            %                 continue;
+            %             end
+            
+            
             datagTypeText = 'RAW RANGE AND BEAM ANGLE (F) (46H)';
             
             % counter for this type of datagram
             try i70=i70+1; catch, i70=1; end
             counter = i70;
-
+            
             % parsing
             % ...to write...
             
         case 71
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_SurfaceSoundSpeed'));
+                continue;
+            end
             
             datagTypeText = 'SURFACE SOUND SPEED (47H)';
             
@@ -390,6 +421,10 @@ for iDatag = datagToParse'
             parsed = 1;
             
         case 72
+            %
+            %             if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_Attitude'));
+            %                 continue;
+            %             end
             
             datagTypeText = 'HEADING (48H)';
             
@@ -401,6 +436,10 @@ for iDatag = datagToParse'
             % ...to write...
             
         case 73
+            
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_InstallationStart'));
+                continue;
+            end
             
             datagTypeText = 'INSTALLATION PARAMETERS - START (49H)';
             
@@ -427,6 +466,7 @@ for iDatag = datagToParse'
             % 1 byte for 1 character.
             ALLfile.EM_InstallationStart.ASCIIData{i73}                       = fscanf(fid, '%c', nbDatag-21);
             
+       
             ALLfile.EM_InstallationStart.ETX(i73)                             = fread(fid,1,'uint8');
             ALLfile.EM_InstallationStart.CheckSum(i73)                        = fread(fid,1,'uint16');
             
@@ -439,6 +479,10 @@ for iDatag = datagToParse'
             parsed = 1;
             
         case 78
+            
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_RawRangeAngle78'));
+                continue;
+            end
             
             datagTypeText = 'RAW RANGE AND ANGLE 78 (4EH)';
             
@@ -522,6 +566,10 @@ for iDatag = datagToParse'
             
         case 79
             
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_Attitude'));
+                continue;
+            end
+            
             datagTypeText = 'QUALITY FACTOR DATAGRAM 79 (4FH)';
             
             % counter for this type of datagram
@@ -532,6 +580,10 @@ for iDatag = datagToParse'
             % ...to write...
             
         case 80
+            
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_Position'));
+                continue;
+            end
             
             datagTypeText = 'POSITION (50H)';
             
@@ -575,6 +627,9 @@ for iDatag = datagToParse'
             parsed = 1;
             
         case 82
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_Runtime'));
+                continue;
+            end
             
             datagTypeText = 'RUNTIME PARAMETERS (52H)';
             
@@ -630,6 +685,10 @@ for iDatag = datagToParse'
             
         case 83
             
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_SeabedImage'));
+                continue;
+            end
+            
             datagTypeText = 'SEABED IMAGE DATAGRAM (53H)';
             
             % counter for this type of datagram
@@ -667,10 +726,12 @@ for iDatag = datagToParse'
             fseek(fid,temp+4,'bof'); % to next data type
             ALLfile.EM_SeabedImage.CentreSampleNumber{i83}          = fread(fid,N,'uint16',6-2);
             fseek(fid,2-6,'cof'); % we need to come back after last jump
+
             Ns = [ALLfile.EM_SeabedImage.NumberOfSamplesPerBeam{i83}];
-            for jj = 1:length(Ns)
-                ALLfile.EM_SeabedImage.SampleAmplitudes(i83).beam{jj}   = fread(fid,Ns(jj),'int8');
-            end
+            tmp=fread(fid,sum(Ns),'int8');
+           
+            ALLfile.EM_SeabedImage.SampleAmplitudes(i83).beam = mat2cell(tmp,Ns);
+            
             % "spare byte if required to get even length (always 0 if used)"
             if floor(sum(Ns)/2) == sum(Ns)/2
                 % even so far, since ETX is 1 byte, add a spare here
@@ -691,6 +752,10 @@ for iDatag = datagToParse'
             parsed = 1;
             
         case 85
+            
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_SoundSpeedProfile'));
+                continue;
+            end
             
             datagTypeText = 'SOUND SPEED PROFILE (55H)';
             
@@ -732,6 +797,10 @@ for iDatag = datagToParse'
             parsed = 1;
             
         case 88
+            
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_XYZ88'));
+                continue;
+            end
             
             datagTypeText = 'XYZ 88 (58H)';
             
@@ -795,6 +864,10 @@ for iDatag = datagToParse'
             
         case 89
             
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_SeabedImage89'));
+                continue;
+            end
+            
             datagTypeText = 'SEABED IMAGE DATA 89 (59H)';
             
             % counter for this type of datagram
@@ -831,9 +904,10 @@ for iDatag = datagToParse'
             ALLfile.EM_SeabedImage89.CentreSampleNumber{i89}          = fread(fid,N,'uint16',C-2);
             fseek(fid,2-C,'cof'); % we need to come back after last jump
             Ns = [ALLfile.EM_SeabedImage89.NumberOfSamplesPerBeam{i89}];
-            for jj = 1:length(Ns)
-                ALLfile.EM_SeabedImage89.SampleAmplitudes(i89).beam{jj}   = fread(fid,Ns(jj),'int16');
-            end
+            tmp=fread(fid,sum(Ns),'int16');
+           
+            ALLfile.EM_SeabedImage89.SampleAmplitudes(i89).beam = mat2cell(tmp,Ns);
+          
             ALLfile.EM_SeabedImage89.Spare(i89)                           = fread(fid,1,'uint8');
             ALLfile.EM_SeabedImage89.ETX(i89)                             = fread(fid,1,'uint8');
             ALLfile.EM_SeabedImage89.CheckSum(i89)                        = fread(fid,1,'uint16');
@@ -848,16 +922,24 @@ for iDatag = datagToParse'
             
         case 102
             
+            %             if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_Attitude'));
+            %                 continue;
+            %             end
+            %
             datagTypeText = 'RAW RANGE AND BEAM ANGLE (f) (66H)';
             
             % counter for this type of datagram
             try i102=i102+1; catch, i102=1; end
             counter = i102;
-           
+            
             % parsing
             % ...to write...
             
         case 104
+            
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_Height'));
+                continue;
+            end
             
             datagTypeText = 'DEPTH (PRESSURE) OR HEIGHT DATAGRAM (68H)';
             
@@ -889,6 +971,10 @@ for iDatag = datagToParse'
             parsed = 1;
             
         case 105
+            
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_InstallationStop'));
+                continue;
+            end
             
             datagTypeText = 'INSTALLATION PARAMETERS -  STOP (69H)';
             
@@ -925,8 +1011,12 @@ for iDatag = datagToParse'
             
             % confirm parsing
             parsed = 1;
-
+            
         case 107
+            
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_WaterColumn'));
+                continue;
+            end
             
             datagTypeText = 'WATER COLUMN DATAGRAM (6BH)';
             
@@ -1004,6 +1094,10 @@ for iDatag = datagToParse'
             
         case 110
             
+            if ~isempty(p.Results.OutputFields)&&~any(strcmpi(p.Results.OutputFields,'EM_NetworkAttitude'));
+                continue;
+            end
+            
             datagTypeText = 'NETWORK ATTITUDE VELOCITY DATAGRAM 110 (6EH)';
             
             % counter for this type of datagram
@@ -1059,12 +1153,12 @@ for iDatag = datagToParse'
             
             % this datagTypeNumber is not recognized yet
             datagTypeText = {sprintf('UNKNOWN DATAGRAM (%sH)',dec2hex(datagTypeNumber))};
-               
+            
     end
     
     % modify ALLfileinfo for output
     ALLfileinfo.parsed(iDatag,1) = parsed;
-
+    
 end
 
 
