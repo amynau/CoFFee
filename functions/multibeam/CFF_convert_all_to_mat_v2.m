@@ -14,14 +14,14 @@
 % all datagrams in ALLfilename into MATfilename. 
 %
 % ALLfileinfo =
-% CFF_convert_all_to_mat_v2(ALLfilename,MATfilename,OutputFields) converts
-% only those datagrams in ALLfilename that are specified by OutputFields,
+% CFF_convert_all_to_mat_v2(ALLfilename,MATfilename,datagrams) converts
+% only those datagrams in ALLfilename that are specified by datagrams,
 % into MATfilename.  
 %
 % ALLfileinfo =
-% CFF_convert_all_to_mat_v2(ALLfilename,'OutputFields',OutputFields)
+% CFF_convert_all_to_mat_v2(ALLfilename,'datagrams',datagrams)
 % converts only those datagrams in ALLfilename that are specified by
-% OutputFields, into a .mat file with default name. 
+% datagrams, into a .mat file with default name. 
 %
 % See example for alternative calls that does the same.
 %
@@ -33,7 +33,7 @@
 % OPTIONAL:
 % * |MATfilename|: character string of the name of the .mat file to output.
 %
-% * |OutputFields|: character string, or cell array of character string, or
+% * |datagrams|: character string, or cell array of character string, or
 % numeric values designating the types of datagrams to be parsed. If
 % character string or cell array of character string, the string must match
 % the datagTypeText of the datagram. If numeric, it must matches the
@@ -96,8 +96,8 @@
 % ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename, 'temp1.mat', 'ATTITUDE (41H)'); % convert only attitude datagrams in desire mat file
 % ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename, 'temp1.mat', {'ATTITUDE (41H)','POSITION (50H)'}); % convert attitude and position datagrams in desire mat file
 % ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename, 'temp1.mat', [65,80]); % same, but using datagram type numbers intead of names
-% ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename, 'MATfilename', 'temp1.mat', 'OutputFields', [65,80]); % same, but using proper input variable names
-% ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename, 'OutputFields', 88); % convert xyz88 datagrams into default mat file
+% ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename, 'MATfilename', 'temp1.mat', 'datagrams', [65,80]); % same, but using proper input variable names
+% ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename, 'datagrams', 88); % convert xyz88 datagrams into default mat file
 %
 % *AUTHOR, AFFILIATION & COPYRIGHT*
 %
@@ -124,24 +124,24 @@ argDefault = [ALLfilename(1:end-3) 'mat'];
 argCheck = @(x) ischar(x) && strcmp(x(end-3:end),'.mat');
 addOptional(p,argName,argDefault,argCheck);
 
-% OutputFields as optional argument.
+% datagrams as optional argument.
 % Check that cell array
-argName = 'OutputFields';
+argName = 'datagrams';
 argDefault = [];
-argCheck = @(x) isnumeric(x)||iscell(x)||(ischar(x)&&~strcmp(x,'OutputFields')); % that last part allows the use of the couple name,param
+argCheck = @(x) isnumeric(x)||iscell(x)||(ischar(x)&&~strcmp(x,'datagrams')); % that last part allows the use of the couple name,param
 addOptional(p,argName,argDefault,argCheck);
 
 % now parse inputs
 parse(p,ALLfilename,varargin{:});
 
 % and get input variables from parser
-ALLfilename  = p.Results.ALLfilename;
-MATfilename  = p.Results.MATfilename;
-OutputFields = p.Results.OutputFields;
+ALLfilename = p.Results.ALLfilename;
+MATfilename = p.Results.MATfilename;
+datagrams   = p.Results.datagrams;
 
 
 %% Read data
-ALLdata = CFF_read_all(ALLfilename,'OutputFields',OutputFields);
+ALLdata = CFF_read_all(ALLfilename,'datagrams',datagrams);
 
 
 %% if output folder doesn't exist, create it

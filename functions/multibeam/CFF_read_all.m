@@ -10,12 +10,11 @@
 % ALLdata = CFF_read_all(ALLfilename) reads all datagrams in ALLfilename
 % and store them in ALLdata.
 %
-% ALLdata = CFF_read_all(ALLfilename,OutputFields) reads only those
-% datagrams in ALLfilename that are specified by OutputFields, and store
-% them in ALLdata.
+% ALLdata = CFF_read_all(ALLfilename,datagrams) reads only those
+% datagrams in ALLfilename that are specified by datagrams, and store them
+% in ALLdata. 
 %
-% ALLdata = CFF_read_all(ALLfilename,'OutputFields',OutputFields) does the
-% same.
+% ALLdata = CFF_read_all(ALLfilename,'datagrams',datagrams) does the same.
 %
 % Note this function will extract all datagram types of interest. For more
 % control (say you only want the first ten depth datagrams and the last
@@ -27,7 +26,7 @@
 % * |ALLfilename|: string filename to parse (extension in .all or .wcd).
 %
 % OPTIONAL:
-% * |OutputFields|: character string, or cell array of character string, or
+% * |datagrams|: character string, or cell array of character string, or
 % numeric values designating the types of datagrams to be parsed. If
 % character string or cell array of character string, the string must match
 % the datagTypeText of the datagram. If numeric, it must matches the
@@ -90,7 +89,7 @@
 % ALLdata = CFF_read_all(ALLfilename, 'ATTITUDE (41H)'); % read only attitude datagrams
 % ALLdata = CFF_read_all(ALLfilename, {'ATTITUDE (41H)','POSITION (50H)'}); % read attitude and position datagrams
 % ALLdata = CFF_read_all(ALLfilename, [65,80]); % same, but using datagram type numbers intead of names
-% ALLdata = CFF_read_all(ALLfilename,'OutputFields',[65,80]); % same, but using proper input variable name
+% ALLdata = CFF_read_all(ALLfilename,'datagrams',[65,80]); % same, but using proper input variable name
 %
 % *AUTHOR, AFFILIATION & COPYRIGHT*
 %
@@ -109,11 +108,11 @@ argName = 'ALLfilename';
 argCheck = @(x) exist(x,'file') && any(strcmp(CFF_file_extension(x),{'.all','.ALL','.wcd','.WCD'}));
 addRequired(p,argName,argCheck);
 
-% OutputFields as optional argument.
+% datagrams as optional argument.
 % Check that cell array
-argName = 'OutputFields';
+argName = 'datagrams';
 argDefault = [];
-argCheck = @(x) isnumeric(x)||iscell(x)||(ischar(x)&&~strcmp(x,'OutputFields')); % that last part allows the use of the couple name,param
+argCheck = @(x) isnumeric(x)||iscell(x)||(ischar(x)&&~strcmp(x,'datagrams')); % that last part allows the use of the couple name,param
 addOptional(p,argName,argDefault,argCheck);
 
 % now parse inputs
@@ -121,33 +120,33 @@ parse(p,ALLfilename,varargin{:});
 
 % and get input variables from parser
 ALLfilename  = p.Results.ALLfilename;
-OutputFields = p.Results.OutputFields;
+datagrams = p.Results.datagrams;
 
 
 %% Parse the entire file for info on datagrams
 info = CFF_all_file_info(ALLfilename);
 
 
-%% Decide which datagrams to record, based on OutputFields
-if isempty(OutputFields)
+%% Decide which datagrams to record, based on datagrams
+if isempty(datagrams)
     % parse all datagrams
     info.parsed(:) = 1;
-elseif isnumeric(OutputFields)
-    % OutputFields is one or several datagTypeNumber
-    ind = ismember(info.datagTypeNumber,OutputFields);
+elseif isnumeric(datagrams)
+    % datagrams is one or several datagTypeNumber
+    ind = ismember(info.datagTypeNumber,datagrams);
     info.parsed(ind) = 1;
-elseif ischar(OutputFields)
-    % OutputFields is one datagTypeText
+elseif ischar(datagrams)
+    % datagrams is one datagTypeText
     for ii = 1:length(info.datagTypeText)
-        if strcmp(info.datagTypeText{ii},OutputFields)
+        if strcmp(info.datagTypeText{ii},datagrams)
             info.parsed(ii) = 1;
         end
     end
-elseif iscell(OutputFields)
-    % OutputFields is one or several datagTypeText
-    for jj = 1:length(OutputFields)
+elseif iscell(datagrams)
+    % datagrams is one or several datagTypeText
+    for jj = 1:length(datagrams)
         for ii = 1:length(info.datagTypeText)
-            if strcmp(info.datagTypeText{ii},OutputFields{jj})
+            if strcmp(info.datagTypeText{ii},datagrams{jj})
                 info.parsed(ii) = 1;
             end
         end
