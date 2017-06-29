@@ -1,38 +1,32 @@
-%% CFF_convert_all_to_mat_v2.m
+%% CFF_read_all.m
 %
-% Converts one Kongsberg EM series binary .all or .wcd data file to a .mat
-% file, allowing choice on which type of datagrams to parse.
-% 
+% Reads contents of one Kongsberg EM series binary .all or .wcd data file,
+% allowing choice on which type of datagrams to parse.
+%
 %% Help
 %
 % *USE*
 %
-% ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename) converts all
-% datagrams in ALLfilename to a .mat file with default name. 
+% ALLdata = CFF_read_all(ALLfilename) reads all datagrams in ALLfilename
+% and store them in ALLdata.
 %
-% ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename,MATfilename) converts
-% all datagrams in ALLfilename into MATfilename. 
+% ALLdata = CFF_read_all(ALLfilename,OutputFields) reads only those
+% datagrams in ALLfilename that are specified by OutputFields, and store
+% them in ALLdata.
 %
-% ALLfileinfo =
-% CFF_convert_all_to_mat_v2(ALLfilename,MATfilename,OutputFields) converts
-% only those datagrams in ALLfilename that are specified by OutputFields,
-% into MATfilename.  
+% ALLdata = CFF_read_all(ALLfilename,'OutputFields',OutputFields) does the
+% same.
 %
-% ALLfileinfo =
-% CFF_convert_all_to_mat_v2(ALLfilename,'OutputFields',OutputFields)
-% converts only those datagrams in ALLfilename that are specified by
-% OutputFields, into a .mat file with default name. 
-%
-% See example for alternative calls that does the same.
+% Note this function will extract all datagram types of interest. For more
+% control (say you only want the first ten depth datagrams and the last
+% position datagram), use CFF_read_all_from_fileinfo.
 %
 % *INPUT VARIABLES*
 %
 % REQUIRED:
-% * |ALLfilename|: string filename to parse (extension in .all or .wcd)
+% * |ALLfilename|: string filename to parse (extension in .all or .wcd).
 %
 % OPTIONAL:
-% * |MATfilename|: character string of the name of the .mat file to output.
-%
 % * |OutputFields|: character string, or cell array of character string, or
 % numeric values designating the types of datagrams to be parsed. If
 % character string or cell array of character string, the string must match
@@ -60,8 +54,9 @@
 % 
 % *OUTPUT VARIABLES*
 %
-% * |ALLfileinfo|: structure containing information about datagrams in
-% ALLfilename, with fields: 
+% * |ALLdata|: structure containing the data. Each field corresponds a
+% different type of datagram. The field |ALLdata.info| contains information
+% about the datagrams in the original input file, with fields: 
 %   * |ALLfilename|: input file name
 %   * |filesize|: file size in bytes
 %   * |datagsizeformat|: endianness of the datagram size field 'b' or 'l'
@@ -70,7 +65,7 @@
 %   * |datagPositionInFile|: position of beginning of datagram in file
 %   * |datagTypeNumber|: for each datagram, SIMRAD datagram type in decimal
 %   * |datagTypeText|: for each datagram, SIMRAD datagram type description
-%   * |parsed|: 0 for each datagram at this stage. To be later turned to 1 for parsing
+%   * |parsed|: for each datagram, 1 if datagram has been parsed (or is to be parsed), 0 otherwise
 %   * |counter|: the counter of this type of datagram in the file (ie first datagram of that type is 1 and last datagram is the total number of datagrams of that type)
 %   * |number|: the number/counter found in the datagram (usually different to counter)
 %   * |size|: for each datagram, datagram size in bytes
@@ -81,34 +76,31 @@
 %
 % *RESEARCH NOTES*
 %
-% * Research notes for CFF_read_all.m apply.
+% * Research notes for CFF_all_file_info.m and CFF_read_all_from_fileinfo.m
+% apply. 
 %
 % *NEW FEATURES*
 %
-% * 2017-06-29: header updated (Alex Schimel).
-% * 2015-09-30: first version taking from last version of convert_all_to_mat (Alex Schimel).
+% * 2017-06-28: first version. Adapated from CFF_convert_all_to_mat_v2.m (Alex Schimel). 
 %
 % *EXAMPLE*
 %
 % ALLfilename = '.\data\EM2040c\0001_20140213_052736_Yolla.all';
-% ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename); % convert all datagrams, in default mat file name
-% ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename, '.\testfolder\temp1.mat'); % convert all datagrams in desire mat file
-% ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename, 'temp1.mat', 'ATTITUDE (41H)'); % convert only attitude datagrams in desire mat file
-% ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename, 'temp1.mat', {'ATTITUDE (41H)','POSITION (50H)'}); % convert attitude and position datagrams in desire mat file
-% ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename, 'temp1.mat', [65,80]); % same, but using datagram type numbers intead of names
-% ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename, 'MATfilename', 'temp1.mat', 'OutputFields', [65,80]); % same, but using proper input variable names
-% ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename, 'OutputFields', 88); % convert xyz88 datagrams into default mat file
+% ALLdata = CFF_read_all(ALLfilename); % read all datagrams
+% ALLdata = CFF_read_all(ALLfilename, 'ATTITUDE (41H)'); % read only attitude datagrams
+% ALLdata = CFF_read_all(ALLfilename, {'ATTITUDE (41H)','POSITION (50H)'}); % read attitude and position datagrams
+% ALLdata = CFF_read_all(ALLfilename, [65,80]); % same, but using datagram type numbers intead of names
+% ALLdata = CFF_read_all(ALLfilename,'OutputFields',[65,80]); % same, but using proper input variable name
 %
 % *AUTHOR, AFFILIATION & COPYRIGHT*
 %
-% Alexandre Schimel, Deakin University, NIWA.
+% Alexandre Schimel, NIWA.
 
 %% Function
-function ALLfileinfo = CFF_convert_all_to_mat_v2(ALLfilename, varargin)
+function ALLdata = CFF_read_all(ALLfilename, varargin)
 
 
 %% Input arguments management using inputParser
-
 p = inputParser;
 
 % ALLfilename to parse as required argument.
@@ -116,13 +108,6 @@ p = inputParser;
 argName = 'ALLfilename';
 argCheck = @(x) exist(x,'file') && any(strcmp(CFF_file_extension(x),{'.all','.ALL','.wcd','.WCD'}));
 addRequired(p,argName,argCheck);
-
-% MATfilename as optional argument.
-% Check that string of character
-argName = 'MATfilename';
-argDefault = [ALLfilename(1:end-3) 'mat'];
-argCheck = @(x) ischar(x) && strcmp(x(end-3:end),'.mat');
-addOptional(p,argName,argDefault,argCheck);
 
 % OutputFields as optional argument.
 % Check that cell array
@@ -136,21 +121,41 @@ parse(p,ALLfilename,varargin{:});
 
 % and get input variables from parser
 ALLfilename  = p.Results.ALLfilename;
-MATfilename  = p.Results.MATfilename;
 OutputFields = p.Results.OutputFields;
 
 
-%% Read data
-ALLdata = CFF_read_all(ALLfilename,'OutputFields',OutputFields);
+%% Parse the entire file for info on datagrams
+info = CFF_all_file_info(ALLfilename);
 
 
-%% if output folder doesn't exist, create it
-MATfilepath = fileparts(MATfilename);
-if ~exist(MATfilepath,'dir') && ~isempty(MATfilepath)
-    mkdir(MATfilepath);
+%% Decide which datagrams to record, based on OutputFields
+if isempty(OutputFields)
+    % parse all datagrams
+    info.parsed(:) = 1;
+elseif isnumeric(OutputFields)
+    % OutputFields is one or several datagTypeNumber
+    ind = ismember(info.datagTypeNumber,OutputFields);
+    info.parsed(ind) = 1;
+elseif ischar(OutputFields)
+    % OutputFields is one datagTypeText
+    for ii = 1:length(info.datagTypeText)
+        if strcmp(info.datagTypeText{ii},OutputFields)
+            info.parsed(ii) = 1;
+        end
+    end
+elseif iscell(OutputFields)
+    % OutputFields is one or several datagTypeText
+    for jj = 1:length(OutputFields)
+        for ii = 1:length(info.datagTypeText)
+            if strcmp(info.datagTypeText{ii},OutputFields{jj})
+                info.parsed(ii) = 1;
+            end
+        end
+    end
 end
 
 
-%% Save the result into a MAT file
-ALLfileinfo = CFF_save_mat_from_all(ALLdata, MATfilename);
+%% Read the file, and only the datagrams desired
+ALLdata = CFF_read_all_from_fileinfo(ALLfilename, info);
+
 

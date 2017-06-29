@@ -1,70 +1,71 @@
-function [ALLfileinfo] = CFF_all_file_info(ALLfilename)
-% function [ALLfileinfo] = CFF_all_file_info(ALLfilename)
+%% CFF_all_file_info.m
 %
-% DESCRIPTION
+% Records basic info about the datagrams contained in one Kongsberg EM
+% series binary .all or .wcd data file.
 %
-% Lists basic info about the datagrams contained in a Kongsberg EM series
-% binary .all or .wcd data file.
+%% Help
 %
-% REQUIRED INPUT ARGUMENTS
-% - 'ALLfilename': string filename to parse (extension in .all or .wcd)
+% *USE*
 %
-% OUTPUT VARIABLES
+% ALLfileinfo = CFF_all_file_info(ALLfilename) opens ALLfilename and reads
+% through quickly to get information about each datagram, and store this
+% info in ALLfileinfo.
 %
-% - ALLfileinfo: structure for description of the datagrams in
-% input file. Fields are:
-%   * ALLfilename: input file name
-%   * filesize: file size in bytes
-%   * datagsizeformat: endianness of the datagram size field 'b' or 'l'
-%   * datagramsformat: endianness of the datagrams 'b' or 'l'
-%   * datagNumberInFile:
-%   * datagTypeNumber: for each datagram, SIMRAD datagram type in decimal
-%   * datagTypeText: for each datagram, SIMRAD datagram type description
-%   * parsed: for each datagram, 1 if datagram has been parsed, 0 if not
-%   * counter: the counter of this type of datagram in the file (ie
-%   first datagram of that type is 1 and last datagram is the total number
-%   of datagrams of that type).
-%   * number: the number/counter found in the datagram (usually
-%   different to counter)
-%   * size: for each datagram, datagram size in bytes
-%   * syncCounter: for each datagram, the number of bytes founds between
-%   this datagram and the previous one (any number different than zero
-%   indicates a sunc error
-%   * emNumber: EM Model number (eg 2045 for EM2040c)
-%   * date: datagram date in YYYMMDD
-%   * timeSinceMidnightInMilliseconds: time since midnight in msecs
+% *INPUT VARIABLES*
 %
-% RESEARCH NOTES
+% REQUIRED:
+% * |ALLfilename|: string filename to parse (extension in .all or .wcd)
 %
-% - code currently lists the EM model numbers supported as a test for sync.
-% Add your model number in the list if it's not currently there. It would
-% be better to remove this test and try to sync on ETX and Checksum
+% *OUTPUT VARIABLES*
+%
+% * |ALLfileinfo|: structure containing information about datagrams in
+% ALLfilename, with fields: 
+%   * |ALLfilename|: input file name
+%   * |filesize|: file size in bytes
+%   * |datagsizeformat|: endianness of the datagram size field 'b' or 'l'
+%   * |datagramsformat|: endianness of the datagrams 'b' or 'l'
+%   * |datagNumberInFile|: number of datagram in file
+%   * |datagPositionInFile|: position of beginning of datagram in file
+%   * |datagTypeNumber|: for each datagram, SIMRAD datagram type in decimal
+%   * |datagTypeText|: for each datagram, SIMRAD datagram type description
+%   * |parsed|: 0 for each datagram at this stage. To be later turned to 1 for parsing
+%   * |counter|: the counter of this type of datagram in the file (ie first datagram of that type is 1 and last datagram is the total number of datagrams of that type)
+%   * |number|: the number/counter found in the datagram (usually different to counter)
+%   * |size|: for each datagram, datagram size in bytes
+%   * |syncCounter|: for each datagram, the number of bytes founds between this datagram and the previous one (any number different than zero indicates a sync error)
+%   * |emNumber|: EM Model number (eg 2045 for EM2040c)
+%   * |date|: datagram date in YYYMMDD
+%   * |timeSinceMidnightInMilliseconds|: time since midnight in msecs 
+%
+% *RESEARCH NOTES*
+%
+% * The code currently lists the EM model numbers supported as a test for
+% sync. Add your model number in the list if it is not currently there. It
+% would be better to remove this test and try to sync on ETX and Checksum
 % instead.
+% * Check regularly with Kongsberg doc to keep updated with new datagrams.
 %
-% EXAMPLE
+% *NEW FEATURES*
 %
-% ALLfilename = '.\DATA\RAW\0001_20140213_052736_Yolla.all';
+% * 2017-06-29: header updated (Alex Schimel)
+% * 2015-09-30: first version taking from convert_all_to_mat (Alex Schimel)
 %
-% tic
-% info = CFF_all_file_info(ALLfilename);
-% info.parsed(:)=1; % to save all the datagrams
-% ALLfile = CFF_read_all_from_fileinfo(ALLfilename, info);
-% ALLfileinfo1 = CFF_save_mat_from_all(ALLfile, 'temp1.mat');
-% clear ALLfile
-% toc
+% *EXAMPLE*
 %
-% % using old conversion function:
-% tic
-% ALLfileinfo2 = CFF_convert_all_to_mat(ALLfilename, 'temp2.mat');
-% toc
+% ALLfilename = '.\data\EM2040c\0001_20140213_052736_Yolla.all';
+% ALLfileinfo = CFF_all_file_info(ALLfilename);
 %
-% NEW FEATURES
+% *AUTHOR, AFFILIATION & COPYRIGHT*
 %
-% - 2015-09-30:
-%   - first version taking from convert_all_to_mat
-%%%
-% Alex Schimel, Deakin University
-%%%
+% Alexandre Schimel, NIWA.
+
+%% Function
+function ALLfileinfo = CFF_all_file_info(ALLfilename)
+
+%% supported systems:
+% see help for info
+emNumberList = [300; 302; 2040; 2045; 3000; 3002; 3020]; %2045 is 2040c
+
 
 %% Input arguments management using inputParser
 p = inputParser;
@@ -81,8 +82,6 @@ parse(p,ALLfilename)
 % and get results
 ALLfilename = p.Results.ALLfilename;
 
-%% supported systems:
-emNumberList = [300;302; 2045;2040; 3000; 3002; 3020]; %2045 is 2040c
 
 %% Checking byte ordering
 % - Luciano's all files are in 'b'
