@@ -464,7 +464,7 @@ function pb_reset_Callback(hObject, eventdata, handles)
 close(gcbf)
 
 % restart
-Deakin_GUI
+Elevation_Change_Analysis
 
 
 
@@ -2000,7 +2000,7 @@ function uipush_help_ClickedCallback(hObject, eventdata, handles)
 
 p = get( groot, 'Screensize' );
 
-d = dialog('Position',[300 300 0.5.*p(3) 0.8.*p(4)],'WindowStyle','normal','Resize','Off','Name','DEM Change Analysis Help');
+d = dialog('Position',[300 300 0.5.*p(3) 0.8.*p(4)],'WindowStyle','normal','Resize','Off','Name','Elevation Change Analysis Help');
 
 movegui(d,'center');
 
