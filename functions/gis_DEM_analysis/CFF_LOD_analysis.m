@@ -33,6 +33,7 @@ function volumes = CFF_LOD_analysis(DEM1,DEM2,polygon,uncertainty,factors,volume
 %
 % NEW FEATURES
 %
+% 2017-08-23: accepting shapefiles as polygon (not tested) (Alex Schimel)
 % 2015-03-10: first version.
 %
 % EXAMPLE
@@ -48,8 +49,31 @@ function volumes = CFF_LOD_analysis(DEM1,DEM2,polygon,uncertainty,factors,volume
 % load polygon and clip DEMs to polygon
 if ~isempty(polygon)
     
-    xv = polygon(:,1);
-    yv = polygon(:,2);
+    if isnumeric(polygon)
+        % polygon is a numerical array of vertices:
+        xv = polygon(:,1);
+        yv = polygon(:,2);
+        
+    elseif ischar(polygon)
+        % now accepting shapefiles
+        
+        P = shaperead(polygon); % needs mapping toolbox
+        c = length(P); % number of polygons
+        xpoly = cell(c,1); % preallocating
+        ypoly = cell(c,1); % preallocating
+        for ii= 1:c
+            xpoly{ii,1} = P(ii).X;
+            ypoly{ii,1} = P(ii).Y;
+        end
+        
+        xv = xpoly{1}';
+        xv(isnan(xv)) = [];
+        xv(end)=[];
+        yv = ypoly{1}';
+        yv(isnan(yv)) = [];
+        yv(end)=[];
+        
+    end
     
     % clip grids to polygon
     [Z1,Z1_easting,Z1_northing] = CFF_clip_raster(Z1,Z1_easting,Z1_northing,xv,yv);
